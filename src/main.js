@@ -9,25 +9,28 @@ const pickedBoxRef = document.getElementById("picked");
 const qrCodeRef = document.getElementById("qr-code");
 const popupRef = document.getElementById("popup");
 
+if (!navigator.share) {
+  document.getElementById("share-link-btn").style.display = "none";
+}
+
 window.addArticle = addArticle;
-window.handleEnter = handleEnter;
+window.addArticleOnEnter = addArticleOnEnter;
 window.pickArticle = pickArticle;
 window.clearArticles = clearArticles;
 window.updatePopup = updatePopup;
 window.copyLink = copyLink;
 window.shareLink = shareLink;
-if (!navigator.share) {
-  document.getElementById("share-link-btn").style.display = "none";
-}
 
 const gameId = new URLSearchParams(document.location.search).get("id");
 if (gameId) {
   gameIdRef.innerText = gameId;
 }
+
 const protocol = document.location.protocol.startsWith("https") ? "wss" : "ws";
 const ws = new WebSocket(
   `${protocol}://${document.location.host}${document.location.pathname}/ws?id=${gameId}`,
 );
+
 ws.addEventListener("message", (msg) => {
   const data = JSON.parse(msg.data);
   if (data.action === "update") {
@@ -51,7 +54,7 @@ ws.addEventListener("message", (msg) => {
   }
 });
 
-window.addEventListener("popstate", () => {
+window.addEventListener("popstate", function hidePopupOnBackNavigation() {
   if (popupRef.className !== "popup") {
     popupRef.className = "popup";
 
@@ -67,7 +70,7 @@ function updateText(ref, text) {
       ref.textContent = "";
       return;
     }
-    ref.textContent = text?.toString();
+    ref.textContent = text.toString();
   }
 }
 
@@ -118,7 +121,7 @@ function addArticle() {
   );
 }
 
-function handleEnter(e) {
+function addArticleOnEnter(e) {
   if (e.key === "Enter") {
     addArticle();
   }
