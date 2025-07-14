@@ -55,8 +55,8 @@ ws.addEventListener("message", (msg) => {
 });
 
 window.addEventListener("popstate", function hidePopupOnBackNavigation() {
-  if (popupRef.className !== "popup") {
-    popupRef.className = "popup";
+  if (popupRef.className.length > 0) {
+    popupRef.className = "";
 
     if (pickedBoxRef.innerText) {
       clearArticles();
