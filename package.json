@@ -1,0 +1,29 @@
+{
+  "name": "totpal",
+  "version": "1.0.0",
+  "description": "Two of those people are laying baggie",
+  "main": "server.js",
+  "scripts": {
+    "start": "run-p dev:vite dev:node ",
+    "build": "run-s build:vite build:node",
+    "dev:node": "nodemon server.js --watch server.js",
+    "dev:vite": "vite",
+    "build:node": "esbuild server.js --bundle --platform=node --target=node22.17 --outfile=dist/server.js",
+    "build:vite": "vite build"
+  },
+  "author": "Tadeusz Makuch <tadeusz.makuch@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "8.18.3",
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.6",
+    "nodemon": "^3.1.10",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.6.2",
+    "sass": "^1.89.2",
+    "terser": "^5.43.1",
+    "vite": "^7.0.4"
+  }
+}

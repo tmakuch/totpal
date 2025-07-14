@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Two of those people are lying</title>
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body>
+    <h1>Two of these people are lying</h1>
+    <small>Game #<span id="game-id"></span> of <span id="players-count">1</span> player(s)</small>
+    <div>
+      <input type="text" id="article" autofocus onkeydown="handleEnter(event)">
+      <button type="button" onclick="addArticle()">Add</button>
+    </div>
+    <div>
+      Added <span id="articles-count">0</span> articles
+      <span>
+        <button type="button" onclick="pickArticle()">Pick one</button>
+        <button type="button" onclick="clearArticles()">Clear</button>
+      </span>
+    </div>
+    <div>
+      <button type="button" onclick="updatePopup('share')">Share game</button>
+      <a href="https://www.youtube.com/watch?v=3yFEfOYTNoE"><button type="button">Learn the rules of the game</button></a>
+    </div>
+    <div id="popup" class="popup">
+      <button class="close show-on-picked show-on-share" onclick="updatePopup(false)">+</button>
+      <p id="picked" class="show-on-picked"></p>
+      <canvas id="qr-code" class="show-on-share"></canvas>
+      <button class="show-on-share" onclick="copyLink()">Copy link</button>
+      <button id="share-link-btn" class="show-on-share" onclick="shareLink()">Share link</button>
+    </div>
+  </body>
+</html>
