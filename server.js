@@ -39,6 +39,22 @@ wss.on("connection", function connection(ws, req) {
 
   ws.on("close", function () {
     console.log(`Game: ${ws.gameId} > player disconnected.`);
+
+    sendForWholeGame(
+      wss,
+      ws.gameId,
+      JSON.stringify({
+        action: "update",
+        payload: {
+          gameId: ws.gameId,
+          picked: games[ws.gameId]?.picked ?? false,
+          articlesCount: games[ws.gameId]?.articles.length,
+          playersCount: Array.from(wss.clients).filter(
+            (client) => client.gameId === ws.gameId,
+          ).length,
+        },
+      }),
+    );
   });
 
   sendForWholeGame(
