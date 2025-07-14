@@ -1,24 +1,6 @@
 const { WebSocketServer } = require("ws");
-const { v4: uuid } = require("uuid");
-const winston = require("winston");
 
-const logger = winston.createLogger({
-  level: "debug",
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json(),
-  ),
-  transports: [
-    new winston.transports.Console({
-      level: "debug",
-      format: winston.format.printf(
-        ({ level, trace, message }) =>
-          `${level.toUpperCase().padEnd(4, " ")} | ${trace ? trace.substring(0, 5) : " ".repeat(5)} > ${message}`,
-      ),
-    }),
-  ],
-});
-const port = 3001;
+const port = +(process.argv[2] ?? 3001);
 const games = {};
 const wss = new WebSocketServer({
   port,
@@ -26,78 +8,41 @@ const wss = new WebSocketServer({
 
 wss.on("connection", function connection(ws, req) {
   clearGamesOlderThan24h();
-  ws.id = uuid();
-  ws.logger = logger.child({
-    trace: ws.id,
-    layer: "ws",
-  });
+
   ws.gameId =
     +new URL("http://host" + req.url).searchParams.get("id") ||
     Math.floor(Math.random() * 10000);
-  ws.logger.info(`Game: ${ws.gameId} > new player.`);
+  console.log(`Game: ${ws.gameId} > player connected.`);
+
   ws.on("message", function message(rawData) {
     try {
-      const data = JSON.parse(rawData);
-      if (data.action === "article") {
-        games[ws.gameId] = games[ws.gameId] || {
-          picked: false,
-          articles: [],
-          timestamp: new Date(),
-        };
-        games[ws.gameId].articles.push(data.payload);
-
-        sendForWholeGame(
-          ws.gameId,
-          JSON.stringify({
-            action: "update",
-            payload: {
-              picked: games[ws.gameId].picked,
-              articlesCount: games[ws.gameId].articles.length,
-            },
-          }),
-        );
-      }
-      if (data.action === "pick" && games[ws.gameId]?.articles?.length >= 1) {
-        games[ws.gameId].picked =
-          games[ws.gameId].articles[
-            Math.floor(Math.random() * games[ws.gameId].articles.length)
-          ];
-        sendForWholeGame(
-          ws.gameId,
-          JSON.stringify({
-            action: "update",
-            payload: {
-              picked: games[ws.gameId].picked,
-            },
-          }),
-        );
-      }
-      if (data.action === "clear") {
-        delete games[ws.gameId];
-        wss.clients.forEach((client) => {
-          if (client.gameId === ws.gameId) {
-            client.send(
-              JSON.stringify({
-                action: "update",
-                payload: {
-                  picked: false,
-                  articlesCount: 0,
-                },
-              }),
-            );
+      const data = JSON.parse(rawData.toString());
+      switch (data.action) {
+        case 'article':
+          handleAddingArticle(wss, ws, data.payload);
+          break;
+        case 'pick':
+          if (games[ws.gameId]?.articles?.length >= 1) {
+            handlePickArticle(wss, ws);
           }
-        });
+          break;
+        case 'clear':
+          handleClearArticles(wss, ws);
+          break;
+        default:
+          console.warn('Unknown action: ' + rawData.toString());
       }
     } catch (e) {
-      ws.logger.warn(
-        `[${ws.id}] Could not handle message - ${rawData.toString()}`,
-      );
+      console.error('Could not handle message: ' + rawData.toString());
     }
   });
+
   ws.on("close", function () {
-    ws.logger.info(`Game: ${ws.gameId} > player disconnected.`);
+    console.log(`Game: ${ws.gameId} > player disconnected.`);
   });
+
   sendForWholeGame(
+    wss,
     ws.gameId,
     JSON.stringify({
       action: "update",
@@ -113,7 +58,7 @@ wss.on("connection", function connection(ws, req) {
   );
 });
 
-logger.info(`Sockets server started on :${port}.`);
+console.log(`Sockets server started on :${port}.`);
 
 function clearGamesOlderThan24h() {
   const now = new Date();
@@ -125,10 +70,65 @@ function clearGamesOlderThan24h() {
   });
 }
 
-function sendForWholeGame(gameId, message) {
+function sendForWholeGame(wss, gameId, message) {
   wss.clients.forEach((client) => {
     if (client.gameId === gameId) {
       client.send(message);
+    }
+  });
+}
+
+function handleAddingArticle(wss, ws, payload) {
+  games[ws.gameId] = games[ws.gameId] || {
+    picked: false,
+    articles: [],
+    timestamp: new Date(),
+  };
+  games[ws.gameId].articles.push(payload);
+
+  sendForWholeGame(
+    wss,
+    ws.gameId,
+    JSON.stringify({
+      action: "update",
+      payload: {
+        picked: games[ws.gameId].picked,
+        articlesCount: games[ws.gameId].articles.length,
+      },
+    }),
+  );
+}
+
+function handlePickArticle(wss, ws) {
+  games[ws.gameId].picked =
+    games[ws.gameId].articles[
+      Math.floor(Math.random() * games[ws.gameId].articles.length)
+      ];
+  sendForWholeGame(
+    wss,
+    ws.gameId,
+    JSON.stringify({
+      action: "update",
+      payload: {
+        picked: games[ws.gameId].picked,
+      },
+    }),
+  );
+}
+
+function handleClearArticles(wss, ws) {
+  delete games[ws.gameId];
+  wss.clients.forEach((client) => {
+    if (client.gameId === ws.gameId) {
+      client.send(
+        JSON.stringify({
+          action: "update",
+          payload: {
+            picked: false,
+            articlesCount: 0,
+          },
+        }),
+      );
     }
   });
 }
